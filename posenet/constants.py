@@ -24,10 +24,12 @@ LOCAL_MAXIMUM_RADIUS = 1
 
 POSE_CHAIN = [
     ("nose", "leftEye"), ("leftEye", "leftEar"), ("nose", "rightEye"),
-    ("rightEye", "rightEar"), ("nose", "leftShoulder"),
+    ("rightEye", "rightEar"),
+     ("nose", "leftShoulder"),
     ("leftShoulder", "leftElbow"), ("leftElbow", "leftWrist"),
     ("leftShoulder", "leftHip"), ("leftHip", "leftKnee"),
-    ("leftKnee", "leftAnkle"), ("nose", "rightShoulder"),
+    ("leftKnee", "leftAnkle"), 
+    ("nose", "rightShoulder"),
     ("rightShoulder", "rightElbow"), ("rightElbow", "rightWrist"),
     ("rightShoulder", "rightHip"), ("rightHip", "rightKnee"),
     ("rightKnee", "rightAnkle")
