@@ -30,7 +30,7 @@ def read_cap(cap, scale_factor=1.0, output_stride=16):
 
 
 def read_imgfile(path, scale_factor=1.0, output_stride=16):
-    img = cv2.imread(path)
+    img = path
     return _process_input(img, scale_factor, output_stride)
 
 
@@ -77,7 +77,7 @@ def draw_skeleton(
 
 def draw_skel_and_kp(
         img, instance_scores, keypoint_scores, keypoint_coords,
-        min_pose_score=0.5, min_part_score=0.5):
+        min_pose_score=0.5, min_part_score=0.3):
 
     out_img = img
     adjacent_keypoints = []
@@ -90,7 +90,7 @@ def draw_skel_and_kp(
             keypoint_scores[ii, :], keypoint_coords[ii, :, :], min_part_score)
         adjacent_keypoints.extend(new_keypoints)
 
-        for ks, kc in zip(keypoint_scores[ii, :], keypoint_coords[ii, :, :]):
+        for ks, kc in zip(keypoint_scores[ii, 5:], keypoint_coords[ii, 5:, :]):
             if ks < min_part_score:
                 continue
             cv_keypoints.append(cv2.KeyPoint(kc[1], kc[0], 10. * ks))
