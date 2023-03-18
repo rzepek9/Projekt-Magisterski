@@ -59,4 +59,14 @@ for i, target in enumerate(video['end_time']):
             targetname= output_dir /'site'/ f'{str(video["last_clip_number"])}_{video["shooter"]}_{video["camera_site"]}_{target[1]}.mov')
         ffmpeg_extract_subclip(video['path_under'], video['end_time'][i][0], video['end_time'][i+1][0], 
             targetname= output_dir /'under'/ f'{str(video["last_clip_number"])}_{video["shooter"]}_{video["camera_under"]}_{target[1]}.mov')
-        
+
+crop_clip = {
+    "+1": [1, 5, 21, 22, 36, 50, 86, 88, 89, 90, 91, 95, 96, 97, 98, 99, 100, 101, 105, 106, 107, 108, 109, 110, 118],
+    "+1.5": [14],
+    "2": [44, 74],
+    "0.8": 116
+}
+104
+137
+138
+20
