@@ -10,29 +10,53 @@ output_dir = Path('/Users/jakubrzepkowski/Documents/Projekt-magisterski/Clipy_wi
 
 
 video = {
-    'path_under': str(input_dir /'kosz1130.avi'),
-    'path_site': str(input_dir /'test11_30_ja.avi'),
-    'end_time': [(4, 'celny'), (8, 'out'), (20, 'niecelny'), (24, 'celny'), (29, 'niecelny'), (34, 'niecelny'), (40, 'niecelny'), (44, 'out'), (53, 'niecelny'), (59, 'celny'), (64, 'niecelny'), (68, 'niecelny'), (74, 'niecelny'), (80, 'celny'), (84, 'celny'), (90, 'celny'), (95, 'celny'), (102, 'celny'), (108, 'niecelny'), (113, 'out')],
-    'target': ['celny', 'out', 'niecelny', 'celny',  'niecelny',  'celny',  'niecelny',  'niecelny',  'niecelny',  'celny',  'niedolot',  'celny',  'niedolot', 'celny', 'celny', 'celny', 'celny', 'niecelny', 'celny', 'niecelny', 'niecelny', 'niecelny', 'out', 'celny', 'celny',  'niecelny', 'niecelny', 'celny', 'niecelny', 'celny', 'niecelny', 'celny', 'niecelny', 'celny', 'out','celny', 'celny','out', 'niecelny', 'niecelny', 'niecelny', 'celny', 'celny', 'niecelny', 'niecelny', 'niecelny', 'celny', 'celny', 'niecelny', 'celny', 'celny', 'niecelny','celny','celny','celny', 'celny',  'celny', 'out'],
+    'path_under': str(input_dir /'pierwsze_nagrania.avi'),
+    'path_site': str(input_dir /'webcam3.avi'),
+    'end_time': 
+    # [(9.5, 'celny'), (13.5, 'celny'), (18, 'celny'), (23, 'niecelny'), (28, 'niecelny'), (32, 'celny'), (37, 'niedolot'),
+    #             (42, 'celny'), (47, 'niecelny'), (43, 'celny'),(48, 'niecelny'), (52, 'niecelny'), (56, 'niecelny'), (61, 'celny'), (66, 'niecelny'), 
+    #             (70, 'out'), (98, 'celny'), (1*60+43, 'celny'), (107, 'out'), (112, 'celny'), (117, 'celny'), (122, 'celny'), (127, 'niecelny'), 
+    #             (131, 'celny'), (136, 'celny'), (140, 'celny'), (145, 'celny'), (149, 'out'), (3*60+2, 'celny'), (3*60+7, 'celny'), 
+    #             (3*60+12, 'niecelny'), (3*60+16, 'celny'), (3*60+21, 'celny'), (3*60+25, 'niecelny'), (3*60+31, 'celny'), 
+    #             (3*60+36, 'niecelny'), (3*60+40.4, 'niecelny'), (3*60+46, 'celny'), (3*60+50, 'niecelny'), (3*60+54, 'out')], 
+                # [(4*60+25, 'celny'),
+                # (4*60+31, 'celny'), (4*60+35, 'niecelny'), (4*60+40, 'celny'), (4*60+45, 'celny'), (4*60+52, 'celny'), (4*60+56.5, 'niecelny'), 
+                # (5*60+2, 'niecelny'), (5*60+7, 'niecelny'), (5*60+12, 'celny'), (5*60+19, 'celny'), (5*60+24, 'niecelny'), (5*60+32, 'celny'), 
+                # (5*60+37, 'nicelny'),(5*60+41, 'out'), (6*60+11.5, 'celny'), (6*60+17, 'celny'), (6*60+23, 'celny'), (6*60+28, 'celny'), 
+                # (6*60+33.5, 'niecelny'), (6*60+41, 'celny'), (6*60+47, 'celny'), (6*60+53, 'celny'), (6*60+59, 'celny'), (7*60+4.3, 'celny'), 
+                # (7*60+11, 'celny'), (7*60+16, 'celny'), (7*60+21, 'out'), (7*60+25, 'out'), (8*60+2, 'niecelny'), (8*60+8, 'celny'), 
+                # (8*60+14, 'celny'), (8*60+19, 'celny'), (8*60+25, 'niecelny'), (8*60+30, 'celny'), 
+                # (8*60+36, 'niecelny'), (8*60+42, 'celny'), (8*60+47, 'celny'), (8*60+52, 'niecelny '),(9*60, 'niecelny'), (9*60+6, 'niecelny'),
+                # (9*60+13, 'niecelny'), (9*60+17, 'out')],
+                # [(9*60+45, 'niecelny'),
+                # (9*60+51, 'niecelny'), (10*60, 'celny'), (10*60+4, 'niecelny'), (10*60+11, 'celny'), (10*60+16, 'celny'), (10*60+21, 'celny'), 
+                # (10*60+28, 'niecelny'), (10*60+33, 'niecelny'), (10*60+38.4, 'celny'), (10*60+44.8, 'niecelny'), (10*60+50, 'niedolot'), (10*60+55, 'celny'), 
+                # (11*60, 'niecelny'),(11*60+6, 'niecelny'), (11*60+11, 'out'), (11*60+37, 'niecelny'), (11*60+43, 'celny'), (11*60+48, 'celny'), 
+                # (11*60+54, 'celny'), (12*60, 'celny'), (12*60+6, 'celny'), (12*60+12, 'niecelny'), (12*60+18, 'celny'), (12*60+24.2, 'celny'), 
+                # (12*60+30, 'celny'), (12*60+34, 'out'), (13*60+8.6, 'niecelny'), (13*60+15, 'celny'), (13*60+21, 'niecelny'), (13*60+27.4, 'celny'), 
+                # (13*60+34, 'niecelny'), (13*60+38, 'out'), (13*60+46, 'celny'), (13*60+51.4, 'celny'), 
+                # (13*60+57.3, 'celny'), (14*60+4, 'niedolot'), (14*60+9.5, 'niedolot'), (14*60+18, 'celny '),(14*60+23.8, 'niecelny'), (14*60+29, 'niecelny'),
+                # (14*60+33, 'out'),],
+                [(16*60+1.5, 'niecelny'),
+                (16*60+7, 'celny'), (16*60+11.3, 'niecelny'), (16*60+17, 'niecelny'), (16*60+21, 'celny'), (16*60+26.5, 'niecelny'), (16*60+32, 'celny'), 
+                (16*60+36.2, 'niedolot'), (10*60+40.8, 'celny'), (10*60+45.5, 'celny'), (10*60+50, 'out')],
+
     'camera_under': 'under',
     'camera_site': 'site',
     'shooter': 'kuba',
-    'last_clip_number': 111,
+    'last_clip_number': 242,
     'destination_path': output_dir
 }
 number_of_clips = len(video['end_time']) - 1
 # assert len(video['end_time']) == len(video['target']), 'To much target or times'
-print((video['end_time'][1][0]))
-print((video['target'][45:]))
+# print((video['end_time'][54]))
+# print((video['target'][45:]))
 
 for i, target in enumerate(video['end_time']):
     if (target[1] != 'out'):
         video['last_clip_number'] += 1
         ffmpeg_extract_subclip(video['path_site'], video['end_time'][i][0], video['end_time'][i+1][0], 
             targetname= output_dir /'site'/ f'{str(video["last_clip_number"])}_{video["shooter"]}_{video["camera_site"]}_{target[1]}.mov')
-        ffmpeg_extract_subclip(video['path_under'],video['end_time'][i][0], video['end_time'][i+1][0], 
+        ffmpeg_extract_subclip(video['path_under'], video['end_time'][i][0], video['end_time'][i+1][0], 
             targetname= output_dir /'under'/ f'{str(video["last_clip_number"])}_{video["shooter"]}_{video["camera_under"]}_{target[1]}.mov')
         
-
-
-
