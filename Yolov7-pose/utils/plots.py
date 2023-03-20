@@ -6,7 +6,10 @@ import os
 import random
 from copy import copy
 from pathlib import Path
+<<<<<<< HEAD
 from numpy import sqrt
+=======
+>>>>>>> bccf2d22174d8818e6a88e8e1ce70446170bee16
 
 import cv2
 import matplotlib
@@ -41,6 +44,7 @@ class Colors:
         return tuple(int(h[1 + i:1 + i + 2], 16) for i in (0, 2, 4))
 
 
+<<<<<<< HEAD
 def plot_one_box_kpt(x, im, color=None, label=None, line_thickness=1, kpt_label=False, kpts=None, steps=2, orig_shape=None):
     # Plots one bounding box on image 'im' using OpenCV
     assert im.data.contiguous, 'Image not contiguous. Apply np.ascontiguousarray(im) to plot_on_box() input image.'
@@ -48,6 +52,15 @@ def plot_one_box_kpt(x, im, color=None, label=None, line_thickness=1, kpt_label=
     color = color or [random.randint(0, 255) for _ in range(3)]
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
     # cv2.rectangle(im, c1, c2, (255,0,0), thickness=tl*1//3, lineType=cv2.LINE_AA)
+=======
+def plot_one_box_kpt(x, im, color=None, label=None, line_thickness=3, kpt_label=False, kpts=None, steps=2, orig_shape=None):
+    # Plots one bounding box on image 'im' using OpenCV
+    assert im.data.contiguous, 'Image not contiguous. Apply np.ascontiguousarray(im) to plot_on_box() input image.'
+    tl = line_thickness or round(0.002 * (im.shape[0] + im.shape[1]) / 2) + 1  # line/font thickness
+    color = color or [random.randint(0, 255) for _ in range(3)]
+    c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+    cv2.rectangle(im, c1, c2, (255,0,0), thickness=tl*1//3, lineType=cv2.LINE_AA)
+>>>>>>> bccf2d22174d8818e6a88e8e1ce70446170bee16
     if label:
         if len(label.split(' ')) > 1:
             label = label.split(' ')[-1]
@@ -494,6 +507,7 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
 
     pose_limb_color = palette[[9, 9, 9, 9, 7, 7, 7, 0, 0, 0, 0, 0, 16, 16, 16, 16, 16, 16, 16]]
     pose_kpt_color = palette[[16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 9, 9, 9, 9, 9, 9]]
+<<<<<<< HEAD
     radius = 2
     num_kpts = len(kpts) // steps
 
@@ -501,6 +515,12 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
         print(steps*kid)
         print(steps*kid + 1)
         print(kpts)
+=======
+    radius = 5
+    num_kpts = len(kpts) // steps
+
+    for kid in range(num_kpts):
+>>>>>>> bccf2d22174d8818e6a88e8e1ce70446170bee16
         r, g, b = pose_kpt_color[kid]
         x_coord, y_coord = kpts[steps * kid], kpts[steps * kid + 1]
         if not (x_coord % 640 == 0 or y_coord % 640 == 0):
@@ -508,11 +528,17 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
                 conf = kpts[steps * kid + 2]
                 if conf < 0.5:
                     continue
+<<<<<<< HEAD
             cv2.circle(im, (int(x_coord), int(y_coord)), radius, (int(r), int(g), int(b)), 1)
 
     for sk_id, sk in enumerate(skeleton):
         print(sk)
         print(kpts)
+=======
+            cv2.circle(im, (int(x_coord), int(y_coord)), radius, (int(r), int(g), int(b)), -1)
+
+    for sk_id, sk in enumerate(skeleton):
+>>>>>>> bccf2d22174d8818e6a88e8e1ce70446170bee16
         r, g, b = pose_limb_color[sk_id]
         pos1 = (int(kpts[(sk[0]-1)*steps]), int(kpts[(sk[0]-1)*steps+1]))
         pos2 = (int(kpts[(sk[1]-1)*steps]), int(kpts[(sk[1]-1)*steps+1]))
@@ -525,6 +551,7 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
             continue
         if pos2[0] % 640 == 0 or pos2[1] % 640 == 0 or pos2[0]<0 or pos2[1]<0:
             continue
+<<<<<<< HEAD
         cv2.line(im, pos1, pos2, (int(r), int(g), int(b)), thickness=1)
 
 
@@ -589,3 +616,6 @@ def frame_values(frame, kpts, steps):
 
 
 
+=======
+        cv2.line(im, pos1, pos2, (int(r), int(g), int(b)), thickness=2)
+>>>>>>> bccf2d22174d8818e6a88e8e1ce70446170bee16

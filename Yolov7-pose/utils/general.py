@@ -792,7 +792,11 @@ def non_max_suppression_kpt(prediction, conf_thres=0.25, iou_thres=0.45, classes
     return output
 
 
+<<<<<<< HEAD
 def strip_optimizer(device='cuda',f='/home/s175668/raid/Praca-Magisterska/Repozytorium/Projekt-Magisterski/Yolov7-pose/yolov7-w6-pose.pt', s=''):  # from utils.general import *; strip_optimizer()
+=======
+def strip_optimizer(device='cpu',f='yolov7-w6-pose.pt', s=''):  # from utils.general import *; strip_optimizer()
+>>>>>>> bccf2d22174d8818e6a88e8e1ce70446170bee16
     # Strip optimizer from 'f' to finalize training, optionally save as 's'
     x = torch.load(f, map_location=torch.device('cpu'))
     if x.get('ema'):
