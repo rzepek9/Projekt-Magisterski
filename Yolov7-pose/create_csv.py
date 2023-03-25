@@ -47,78 +47,73 @@ def run(poseweights="yolov7-w6-pose.pt",fold_source='/home/s175668/raid/Praca-Ma
     _ = model.eval()
    
     for clip in fold_lines:
-        
-        if "side" in clip
+        clip.replace("side", "site")
 
-
-        if 'site' not in source:
-            calculate_angle = False
-            output_csv_dir = output_csv_dir / 'under'
-        else:
+        if 'site' in clip:
             output_csv_dir = output_csv_dir / 'site'
             calculate_angle = True
-
-        frame_cords = []
-        target = int(source[-5])
-        file_name = source.split('_', 1)[0]
-        cap = cv2.VideoCapture(f'{source_dir}/{source}')
-
-        if (cap.isOpened() == False):   #check if videocapture not opened
-            print('Error while trying to read video. Please check path again')
-            raise SystemExit()
         
+            frame_cords = []
+            target = int(clip[-5])
+            clip_id = clip.rsplit('/',1)[0].split('_',1)[0]
+            cap = cv2.VideoCapture(clip)
 
-        else:
-            frame_width = int(cap.get(3))  #get video frame width
-            frame_height = int(cap.get(4)) #get video frame height
-
-            while(cap.isOpened): #loop until cap opened or video not complete
+            if (cap.isOpened() == False):   #check if videocapture not opened
+                print('Error while trying to read video. Please check path again')
+                raise SystemExit()
             
 
-                ret, frame = cap.read()  
+            else:
+                frame_width = int(cap.get(3))  #get video frame width
+                frame_height = int(cap.get(4)) #get video frame height
+
+                while(cap.isOpened): #loop until cap opened or video not complete
                 
-                if ret: #if success is true, means frame exist
 
-                    orig_image = frame #store frame
-                    image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB) #convert frame to RGB
-                    image = letterbox(image, (frame_width), stride=64, auto=True)[0]
+                    ret, frame = cap.read()  
+                    
+                    if ret: #if success is true, means frame exist
 
-                    image = transforms.ToTensor()(image)
-                    image = torch.tensor(np.array([image.numpy()]))
-                
-                    image = image.to(device)  #convert image data to device
-                    image = image.float() #convert image to float precision (cpu)
-                   
-                
-                    with torch.no_grad():  #get predictions
-                        output_data, _ = model(image)
+                        orig_image = frame #store frame
+                        image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB) #convert frame to RGB
+                        image = letterbox(image, (frame_width), stride=64, auto=True)[0]
 
-
-                    output_data = non_max_suppression_kpt(output_data,   #Apply non max suppression
-                                                0.75,   # Conf. Threshold.
-                                                0.65, # IoU Threshold.
-                                                nc=model.yaml['nc'], # Number of classes.
-                                                nkpt=model.yaml['nkpt'], # Number of keypoints.
-                                                kpt_label=True)
+                        image = transforms.ToTensor()(image)
+                        image = torch.tensor(np.array([image.numpy()]))
+                    
+                        image = image.to(device)  #convert image data to device
+                        image = image.float() #convert image to float precision (cpu)
+                    
+                    
+                        with torch.no_grad():  #get predictions
+                            output_data, _ = model(image)
 
 
-                    for pose in output_data:  # detections per image
-                        if len(output_data):  #check if no pose
-                            for det_index, (*xyxy, conf, cls) in enumerate(reversed(pose[:,:6])): #loop over poses for drawing on frame
-            
-                            
-                                kpts = pose[det_index, 21:]
-                                frame_cords.append(frame_values(kpts, steps=3, target=target,calculate = calculate_angle))
-    
-                
-                else:
-                    break
+                        output_data = non_max_suppression_kpt(output_data,   #Apply non max suppression
+                                                    0.75,   # Conf. Threshold.
+                                                    0.65, # IoU Threshold.
+                                                    nc=model.yaml['nc'], # Number of classes.
+                                                    nkpt=model.yaml['nkpt'], # Number of keypoints.
+                                                    kpt_label=True)
 
-            cap.release()
-            cv2.destroyAllWindows()
 
-            # tworze csv
-            create_csv(frame_cords, output_csv_dir, file_name)
+                        for pose in output_data:  # detections per image
+                            if len(output_data):  #check if no pose
+                                for det_index, (*xyxy, conf, cls) in enumerate(reversed(pose[:,:6])): #loop over poses for drawing on frame
+
+                                    kpts = pose[det_index, 21:]
+                                    frame_cords.append(frame_values(kpts, steps=3, target=target,calculate = calculate_angle))
+        
+                    
+                    else:
+                        break
+
+                cap.release()
+                cv2.destroyAllWindows()
+
+                # tworze csv
+                create_csv(frame_cords, output_csv_dir, clip_id)
+
 
 
 def parse_opt():
