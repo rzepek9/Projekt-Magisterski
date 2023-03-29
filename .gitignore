@@ -1,0 +1,5 @@
+# Ignore Jupyter notebooks with "test" in the name
+*test*.ipynb
+
+# Ignore Python cache files
+__pycache__/
