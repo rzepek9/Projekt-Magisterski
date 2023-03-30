@@ -4,12 +4,12 @@ from pathlib import Path
 
 import cv2
 import torch
-
 from models.experimental import attempt_load
-from .utils import create_csv, postprocess_image, write_video_results, preprocess_image
 from utils.general import non_max_suppression_kpt
 from utils.plots import frame_values, plot_skeleton_without_head
-from utils.torch_utils import select_device
+
+from .utils import (create_csv, postprocess_image, preprocess_image,
+                    write_video_results)
 
 CURRENT_DIR = os.getcwd()
 POSEWEIGHTS = "Yolov7_pose/yolov7-w6-pose.pt"
@@ -18,9 +18,13 @@ OUTPUT_CSV_DIR = Path("Yolov7_pose/output_csv")
 
 
 class YoloPose:
-    def __init__(self, device):
-        self.device = select_device(device)
-        self.yolov7_pose = self.load_model(POSEWEIGHTS, device)
+    def __init__(self, poseweights=None):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.yolov7_pose = (
+            self.load_model(POSEWEIGHTS, self.device)
+            if not poseweights
+            else self.load_model(poseweights, self.device)
+        )
 
     def load_model(self, poseweights, device):
         model = attempt_load(POSEWEIGHTS, device)

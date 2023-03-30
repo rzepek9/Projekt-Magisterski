@@ -3,6 +3,7 @@ from ultralytics import YOLO
 
 YOLO_BBALL_CHECKPOINT = "basketball_detection/yolo_bball_best/yolov8_bball.pt"
 OUTPUT_FILENAME = "basketball_detection/basketball_detection.avi"
+DETECTION_CONFIDENCE = 0.5
 
 
 class BasketballDetector:
@@ -10,9 +11,9 @@ class BasketballDetector:
     Class for detecting basketball objects
     """
 
-    def __init__(self, detection_confidence):
-        self.yolov8 = YOLO(YOLO_BBALL_CHECKPOINT)
-        self.confidence = detection_confidence
+    def __init__(self, yolo_weights=None, detection_confidence=None):
+        self.yolov8 = YOLO(YOLO_BBALL_CHECKPOINT) if not yolo_weights else YOLO(yolo_weights)
+        self.confidence = DETECTION_CONFIDENCE if not detection_confidence else detection_confidence
 
     def get_detections(self, frame):
         return self.yolov8.predict(source=[frame], conf=self.confidence, save=False)
