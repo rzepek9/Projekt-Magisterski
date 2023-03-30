@@ -34,6 +34,14 @@ def get_distance(ball_center, kpt_coords):
     )
 
 
+def init_extraction_vars():
+    output_video = None
+    frames_since_ball = 0
+    shooting_motion_start = None
+    shooting_motion_end = None
+    return output_video, frames_since_ball, shooting_motion_start, shooting_motion_end
+
+
 def get_distances(ball_coords, kpts_without_head):
     hands = kpts_without_head[6:18]
     left_elbow = rescale_detections(hands[:2])

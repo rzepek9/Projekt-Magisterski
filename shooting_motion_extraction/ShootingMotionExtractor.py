@@ -1,9 +1,15 @@
 import cv2
+import torch
 
 from basketball_detection.BasketballDetector import BasketballDetector
 from Yolov7_pose.pose_estimation.utils import preprocess_image
 from Yolov7_pose.pose_estimation.YoloPose import YoloPose
-from .utils import is_ball_too_big, get_distances, rescale_detections
+from .utils import (
+    is_ball_too_big,
+    get_distances,
+    rescale_detections,
+    init_extraction_vars,
+)
 
 OUTPUT_FILENAME = "extracted_shot.avi"
 DIST_THRESHOLD = 100
@@ -11,11 +17,12 @@ FRAMES_THRESHOLD = 20
 
 
 class ShootingMotionExtractor:
-    def __init__(self, device, bball_detection_confidence):
-        self.device = device
-        self.bball_detection_confidence = bball_detection_confidence
-        self.bball_detector = BasketballDetector(self.bball_detection_confidence)
-        self.yolo_pose = YoloPose(self.device)
+    def __init__(self, yolo_bball_detector=None, yolo_pose=None):
+        self.bball_detector = (
+            BasketballDetector() if not yolo_bball_detector else yolo_bball_detector
+        )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.yolo_pose = YoloPose()
 
     def get_detections(self, frame, frame_width):
         image = preprocess_image(frame, frame_width, self.device)
@@ -64,7 +71,12 @@ class ShootingMotionExtractor:
         cv2.destroyAllWindows()
 
     def extract_shooting_motion(
-        self, source, show_video=True, save_video=False, output_filename=None
+        self,
+        source,
+        show_video=True,
+        save_video=False,
+        output_filename=None,
+        return_shooting_motion_period=False,
     ):
         cap = cv2.VideoCapture(source)
         frame_size = (
@@ -76,6 +88,14 @@ class ShootingMotionExtractor:
             raise SystemExit()
         output_video = None
         frames_since_ball = 0
+        shooting_motion_start = None
+        shooting_motion_end = None
+        (
+            output_video,
+            frames_since_ball,
+            shooting_motion_start,
+            shooting_motion_end,
+        ) = init_extraction_vars()
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -85,9 +105,12 @@ class ShootingMotionExtractor:
                 frame, frame_size[0]
             )
             if self.is_ball_in_hands(frame, basketball_detections, kpt_detections):
+                if not shooting_motion_start:
+                    shooting_motion_start = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+                    print(f"Shooting motion started at {shooting_motion_start}")
                 print("BALL IN HANDS")
                 frames_since_ball = 0
-                if save_video and output_video is None:
+                if save_video and not output_video:
                     fourcc = cv2.VideoWriter_fourcc(*"MJPG")
                     if not output_filename:
                         output_filename = OUTPUT_FILENAME
@@ -101,17 +124,21 @@ class ShootingMotionExtractor:
                     print(
                         f"{FRAMES_THRESHOLD} FRAMES WITHOUT THE BALL IN HANDS, STOPPING FILE WRITING"
                     )
+                    shooting_motion_end = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+                    print(f"Shooting motion ended at {shooting_motion_end}")
                     break
             if show_video:
                 cv2.imshow("Shooting Motion", frame)
                 if cv2.waitKey(1) & 0xFF == 27:
                     break
-            if save_video and output_video is not None:
+            if save_video and output_video:
                 output_video.write(frame)
-        if save_video and output_video is not None:
+        if save_video and output_video:
             output_video.release()
         cap.release()
         cv2.destroyAllWindows()
+        if return_shooting_motion_period:
+            return (shooting_motion_start, shooting_motion_end)
 
     def is_ball_in_hands(self, frame, basketball_detections, kpt_detections):
         if self.bball_detector.are_objects_detected(basketball_detections):
