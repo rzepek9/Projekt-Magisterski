@@ -31,6 +31,10 @@ def get_shooting_motion_period(source):
 
 def crop_video(source_under, source_side):
     start_time, end_time = get_shooting_motion_period(source_under)
+    if not (start_time and end_time):
+        start_time, end_time = get_shooting_motion_period(source_under)
+    if not (start_time and end_time):
+        print("Unable to extract the shooting motion")
     output_filename_under = get_output_filename(source_under)
     output_filename_side = get_output_filename(source_side)
     ffmpeg_extract_subclip(
