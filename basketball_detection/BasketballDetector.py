@@ -1,7 +1,7 @@
 import cv2
 from ultralytics import YOLO
 
-YOLO_BBALL_CHECKPOINT = "basketball_detection/yolo_bball_best/yolov8_bball.pt"
+YOLO_BBALL_CHECKPOINT = "basketball_detection/yolov8_bball.pt"
 OUTPUT_FILENAME = "basketball_detection/basketball_detection.avi"
 DETECTION_CONFIDENCE = 0.5
 
