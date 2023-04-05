@@ -11,6 +11,10 @@ from torchvision import transforms
 from Yolov7_pose.utils.datasets import letterbox
 
 
+def init_detection_vars():
+    return 0, 0, [], [], [], []
+
+
 def preprocess_image(frame, frame_width, device):
     image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert frame to RGB
     image = letterbox(image, (frame_width), stride=64, auto=True)[0]

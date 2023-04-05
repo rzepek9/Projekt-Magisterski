@@ -4,11 +4,12 @@ import torch
 from basketball_detection.BasketballDetector import BasketballDetector
 from Yolov7_pose.pose_estimation.utils import preprocess_image
 from Yolov7_pose.pose_estimation.YoloPose import YoloPose
+
 from .utils import (
-    is_ball_too_big,
     get_distances,
-    rescale_detections,
     init_extraction_vars,
+    is_ball_too_big,
+    rescale_detections,
 )
 
 OUTPUT_FILENAME = "extracted_shot.avi"
@@ -22,7 +23,7 @@ class ShootingMotionExtractor:
             BasketballDetector() if not yolo_bball_detector else yolo_bball_detector
         )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.yolo_pose = YoloPose()
+        self.yolo_pose = YoloPose() if not yolo_pose else yolo_pose
 
     def get_detections(self, frame, frame_width):
         image = preprocess_image(frame, frame_width, self.device)
@@ -86,10 +87,6 @@ class ShootingMotionExtractor:
         if not cap.isOpened():
             print("Error while trying to read video. Check if source is valid")
             raise SystemExit()
-        output_video = None
-        frames_since_ball = 0
-        shooting_motion_start = None
-        shooting_motion_end = None
         (
             output_video,
             frames_since_ball,
@@ -165,7 +162,7 @@ class ShootingMotionExtractor:
             return False
 
 
-def is_ball_above_knees(frame, ball_coords, kpts_without_head):
+def is_ball_above_knees(ball_coords, kpts_without_head):
     knees = kpts_without_head[24:29]
     left_knee = rescale_detections(knees[:2])
     right_knee = rescale_detections(knees[3:])

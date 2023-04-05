@@ -5,7 +5,7 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from shooting_motion_extraction.ShootingMotionExtractor import ShootingMotionExtractor
 
 OUTPUT_PATH = Path("/home/gustaw/magisterka/videos_extracted/")
-INPUT_DIR = Path("/home/gustaw/magisterka/videos_cropped/")
+INPUT_DIR = Path("/home/gustaw/magisterka/four_seconds/")
 
 shooting_motion_extractor = ShootingMotionExtractor()
 
@@ -32,29 +32,53 @@ def get_shooting_motion_period(source):
 def crop_video(source_under, source_side):
     start_time, end_time = get_shooting_motion_period(source_under)
     if not (start_time and end_time):
-        start_time, end_time = get_shooting_motion_period(source_under)
-    if not (start_time and end_time):
+        print("RETRYING FROM THE SIDE PERSPECTIVE")
+        start_time, end_time = get_shooting_motion_period(source_side)
+    if start_time and end_time:
+        output_filename_under = get_output_filename(source_under)
+        output_filename_side = get_output_filename(source_side)
+        ffmpeg_extract_subclip(
+            source_under, start_time, end_time, targetname=output_filename_under
+        )
+        ffmpeg_extract_subclip(
+            source_side, start_time, end_time, targetname=output_filename_side
+        )
+    else:
         print("Unable to extract the shooting motion")
-    output_filename_under = get_output_filename(source_under)
-    output_filename_side = get_output_filename(source_side)
-    ffmpeg_extract_subclip(
-        source_under, start_time, end_time, targetname=output_filename_under
-    )
-    ffmpeg_extract_subclip(
-        source_side, start_time, end_time, targetname=output_filename_side
-    )
+        source_under_failed = source_under.with_suffix(".avi").with_name(
+            source_under.stem + "_FAILED.mov"
+        )
+        source_side_failed = source_side.with_suffix(".avi").with_name(
+            source_side.stem + "_FAILED.mov"
+        )
+        source_under.rename(source_under_failed)
+        source_side.rename(source_side_failed)
+        pass
 
 
 if __name__ == "__main__":
     under_dir = INPUT_DIR.joinpath("under")
     side_dir = INPUT_DIR.joinpath("side")
-    files = [
-        (under_file, side_dir.joinpath(under_file.name.replace("_under_", "_side_")))
-        for under_file in under_dir.iterdir()
-        if under_file.name.endswith(".mov")
-    ]
+    files = sorted(
+        [
+            (
+                under_file,
+                side_dir.joinpath(under_file.name.replace("_under_", "_side_")),
+            )
+            for under_file in under_dir.iterdir()
+            if under_file.name.endswith(".mov")
+        ]
+    )
+    print(len(files))
+    exists = 0
     for under_file, side_file in files:
-        if side_file.exists():
-            crop_video(under_file, side_file)
+        if Path(get_output_filename(under_file)).exists():
+            exists += 1
+            print(Path(get_output_filename(under_file)))
+            print(f"ALREADY EXTRACTED {exists}")
         else:
-            print(f"No matching file for {under_file} found")
+            if side_file.exists():
+                print(f"PROCESSING{under_file}")
+                crop_video(under_file, side_file)
+            else:
+                print(f"No matching file for {under_file} found")

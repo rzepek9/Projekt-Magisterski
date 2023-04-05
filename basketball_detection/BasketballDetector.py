@@ -12,8 +12,12 @@ class BasketballDetector:
     """
 
     def __init__(self, yolo_weights=None, detection_confidence=None):
-        self.yolov8 = YOLO(YOLO_BBALL_CHECKPOINT) if not yolo_weights else YOLO(yolo_weights)
-        self.confidence = DETECTION_CONFIDENCE if not detection_confidence else detection_confidence
+        self.yolov8 = (
+            YOLO(YOLO_BBALL_CHECKPOINT) if not yolo_weights else YOLO(yolo_weights)
+        )
+        self.confidence = (
+            DETECTION_CONFIDENCE if not detection_confidence else detection_confidence
+        )
 
     def get_detections(self, frame):
         return self.yolov8.predict(source=[frame], conf=self.confidence, save=False)
