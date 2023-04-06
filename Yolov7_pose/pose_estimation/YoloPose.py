@@ -4,6 +4,7 @@ from pathlib import Path
 import cv2
 import torch
 from models.experimental import attempt_load
+from numpy.typing import NDArray
 from utils.general import non_max_suppression_kpt
 from utils.plots import frame_values, plot_skeleton_without_head
 
@@ -15,13 +16,17 @@ from .utils import (
     write_video_results,
 )
 
-POSEWEIGHTS = "Yolov7_pose/yolov7-w6-pose.pt"
+POSEWEIGHTS = Path("Yolov7_pose/yolov7-w6-pose.pt")
 OUTPUT_VIDEO_DIR = Path("Yolov7_pose/output_videos")
 OUTPUT_CSV_DIR = Path("Yolov7_pose/output_csv")
 
 
 class YoloPose:
-    def __init__(self, poseweights=None):
+    """
+    Class for pose estimation with Yolov7
+    """
+
+    def __init__(self, poseweights: Path = None) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.yolov7_pose = (
             self.load_model(POSEWEIGHTS, self.device)
@@ -29,7 +34,12 @@ class YoloPose:
             else self.load_model(poseweights, self.device)
         )
 
-    def load_model(self, poseweights, device):
+    def load_model(
+        self, poseweights: Path, device: torch.device
+    ) -> torch.nn.Sequential:
+        """
+        Loads the model from weigths path and sets it to evaluation mode
+        """
         model = (
             attempt_load(poseweights, device)
             if poseweights
@@ -39,12 +49,19 @@ class YoloPose:
 
     def detect_on_video(
         self,
-        source,
-        show_video=True,
-        save_video=False,
-        write_cords_to_csv=False,
-        output_filename=None,
-    ):
+        source: Path,
+        show_video: bool = True,
+        save_video: bool = False,
+        write_cords_to_csv: bool = False,
+        output_filename: Path = None,
+    ) -> None:
+        """
+        Makes detections on a video
+        Allows for:
+        displaying the video
+        saving the video with detections
+        saving the cords of detections to a csv file
+        """
         (
             frame_count,
             total_fps,
@@ -91,12 +108,24 @@ class YoloPose:
         cap.release()
         cv2.destroyAllWindows()
 
-    def is_pose_detected(self, detections):
+    def is_pose_detected(self, detections: list) -> bool:
+        """
+        Checks if objects are detected and returns according bool value
+        """
         return len(detections) != 0
 
     def plot_detections_and_get_results(
-        self, image, detections, frame_cords=[], frame_count=0
-    ):
+        self,
+        image: NDArray,
+        detections: list,
+        frame_cords: list = [],
+        frame_count: int = 0,
+    ) -> tuple:
+        """
+        Plots detections on image
+        based on a list of detections
+        Returns frame coordinates and the result image
+        """
         image_post = postprocess_image(image)
         for pose in detections:
             if self.is_pose_detected(detections):
@@ -119,7 +148,11 @@ class YoloPose:
                     frame_count += 1
         return frame_cords, image_post
 
-    def get_detections(self, image):
+    def get_detections(self, image: NDArray) -> torch.tensor:
+        """
+        Makes detections on an image
+        Returns detections in form of a tensor
+        """
         with torch.no_grad():
             output_data, _ = self.yolov7_pose(image)
             return non_max_suppression_kpt(

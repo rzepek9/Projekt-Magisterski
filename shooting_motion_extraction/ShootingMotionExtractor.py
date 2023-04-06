@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import cv2
 import torch
+from numpy.typing import NDArray
 
 from basketball_detection.BasketballDetector import BasketballDetector
 from Yolov7_pose.pose_estimation.utils import preprocess_image
@@ -12,28 +15,43 @@ from .utils import (
     rescale_detections,
 )
 
-OUTPUT_FILENAME = "extracted_shot.avi"
+OUTPUT_FILENAME = Path("extracted_shot.avi")
 DIST_THRESHOLD = 100
 FRAMES_THRESHOLD = 20
 
 
 class ShootingMotionExtractor:
-    def __init__(self, yolo_bball_detector=None, yolo_pose=None):
+    def __init__(
+        self, yolo_bball_detector: BasketballDetector = None, yolo_pose: YoloPose = None
+    ):
         self.bball_detector = (
             BasketballDetector() if not yolo_bball_detector else yolo_bball_detector
         )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.yolo_pose = YoloPose() if not yolo_pose else yolo_pose
 
-    def get_detections(self, frame, frame_width):
+    def get_detections(
+        self, frame: NDArray, frame_width: int, bball_detection_conf: int = 0.5
+    ) -> tuple:
+        """
+        Detects basketball objects and pose estimations
+        Returns a tuple with both detections
+        """
         image = preprocess_image(frame, frame_width, self.device)
         kpt_detections = self.yolo_pose.get_detections(image)
-        basketball_detections = self.bball_detector.get_detections(frame)
+        basketball_detections = self.bball_detector.get_detections(
+            frame, bball_detection_conf
+        )
         return (basketball_detections, kpt_detections)
 
     def detect_on_video(
-        self, source, show_video=True, save_video=False, output_filename=None
-    ):
+        self,
+        source: Path,
+        bball_detection_conf: int = 0.5,
+        show_video: bool = True,
+        save_video: bool = False,
+        output_filename: Path = None,
+    ) -> None:
         cap = cv2.VideoCapture(source)
         frame_size = (
             int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
@@ -46,14 +64,16 @@ class ShootingMotionExtractor:
             fourcc = cv2.VideoWriter_fourcc(*"MJPG")
             if not output_filename:
                 output_filename = OUTPUT_FILENAME
-            output_video = cv2.VideoWriter(output_filename, fourcc, 20.0, frame_size)
+            output_video = cv2.VideoWriter(
+                str(output_filename), fourcc, 20.0, frame_size
+            )
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 print("Can't receive frame (stream end?). Exiting ...")
                 break
             basketball_detections, kpt_detections = self.get_detections(
-                frame, frame_size[0]
+                frame, frame_size[0], bball_detection_conf
             )
             _, image_post = self.yolo_pose.plot_detections_and_get_results(
                 preprocess_image(frame, frame_size[0], self.device), kpt_detections
@@ -73,12 +93,13 @@ class ShootingMotionExtractor:
 
     def extract_shooting_motion(
         self,
-        source,
-        show_video=True,
-        save_video=False,
-        output_filename=None,
-        return_shooting_motion_period=False,
-    ):
+        source: Path,
+        bball_detection_conf: int = 0.5,
+        show_video: bool = True,
+        save_video: bool = False,
+        output_filename: Path = None,
+        return_shooting_motion_period: bool = False,
+    ) -> None | tuple:
         cap = cv2.VideoCapture(source)
         frame_size = (
             int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
@@ -99,7 +120,7 @@ class ShootingMotionExtractor:
                 print("Can't receive frame (stream end?). Exiting ...")
                 break
             basketball_detections, kpt_detections = self.get_detections(
-                frame, frame_size[0]
+                frame, frame_size[0], bball_detection_conf
             )
             if self.is_ball_in_hands(frame, basketball_detections, kpt_detections):
                 if not shooting_motion_start:
@@ -137,7 +158,9 @@ class ShootingMotionExtractor:
         if return_shooting_motion_period:
             return (shooting_motion_start, shooting_motion_end)
 
-    def is_ball_in_hands(self, frame, basketball_detections, kpt_detections):
+    def is_ball_in_hands(
+        self, frame: NDArray, basketball_detections, kpt_detections
+    ) -> bool:
         if self.bball_detector.are_objects_detected(basketball_detections):
             boxes = basketball_detections[0].boxes.boxes.numpy()
             balls_detected = {
@@ -152,7 +175,7 @@ class ShootingMotionExtractor:
                             reversed(pose[:, :6])
                         ):  # loop over poses for drawing on frame
                             kpts_without_head = pose[det_index, 21:]
-                            if is_ball_above_knees(frame, ball, kpts_without_head):
+                            if is_ball_above_knees(ball, kpts_without_head):
                                 if not is_ball_too_big(ball):
                                     distances = get_distances(ball, kpts_without_head)
                                     if any(
