@@ -1,4 +1,5 @@
 import torch
+
 from torch.utils.data import DataLoader
 
 from models.modellstm import LSTM, CONV_2D
@@ -10,12 +11,10 @@ test_set = FeatureDataset('/home/s175668/raid/Praca-Magisterska/Repozytorium/Pro
 train_data = DataLoader(training_set, batch_size=12, shuffle=True)
 test_data = DataLoader(test_set, batch_size=12, shuffle=False)
 
-model = CONV_2D()
+model = LSTM()
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
-
-train_data, test_data = train_data.to(device), test_data.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = torch.nn.BCELoss()

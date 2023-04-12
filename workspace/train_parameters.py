@@ -3,10 +3,10 @@ import wandb
 
 import torch
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
 from models.modellstm import LSTM, CONV_2D
 from dataset import FeatureDataset
-from torch.utils.data import DataLoader
 
 
 """
@@ -24,27 +24,28 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 device = 'cuda:0'
 
 sweep_config = {
-    "name": "lstm_with_conv_by_frames",
+    "name": "conv1d_1lstm_300_epoch",
     'method': 'random',
     'metric': {'goal': 'maximize', 'name': 'accu_val'},
     'parameters': {
-        'batch_size': {'values': [16, 32, 64]},
+        'batch_size': {'values': [4, 8, 16]},
+        'droput_value': {'values': [0.1, 0.2, 0.3]},
         'learning_rate': {'distribution': 'uniform',
-                          'max': 0.001,
-                          'min': 0.0001},
+                          'max': 0.0004,
+                          'min': 0.00005},
         'optimizer': {'values': ['adam', 'sgd']},
     }
 }
 
 
-sweep_id = wandb.sweep(sweep_config, project='lstm_with_conv_by_frames')
+sweep_id = wandb.sweep(sweep_config, project='conv1d_1lstm_300_epoch')
 
 print(sweep_id)
 
 
 def train(config=None):
 
-    with wandb.init(project='lstm_with_conv_by_frames', entity='Rzepek', config=config, id='esssaa12'):
+    with wandb.init(project='conv1d_1lstm_300_epoch', entity='Rzepek', config=config, id='esssaa12'):
         config = wandb.config
 
         training_set = FeatureDataset('/home/s175668/raid/Praca-Magisterska/Repozytorium/Projekt-Magisterski/workspace/train/fold0')
@@ -53,12 +54,13 @@ def train(config=None):
         train_data = DataLoader(training_set, batch_size=config.batch_size, shuffle=True)
         test_data = DataLoader(test_set, batch_size=config.batch_size, shuffle=False)
 
-        model = LSTM()
+        model = LSTM(config.droput_value)
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = model.to(device)
 
         loss_fn = torch.nn.BCELoss()
+
 
         if config.optimizer == "sgd":
             optimizer = optim.SGD(model.parameters(),
@@ -69,7 +71,7 @@ def train(config=None):
 
         wandb.watch(model, loss_fn, log="all")
 
-        for epoch in range(50):
+        for epoch in range(300):
             model.train()
             running_loss = 0.
             correct = 0
@@ -80,7 +82,6 @@ def train(config=None):
                 inputs, labels = data
                 inputs = inputs.to(device)
                 labels = torch.unsqueeze(labels, 1).to(device)
-                print(inputs.size())
 
                 # Zero your gradients for every batch!
                 optimizer.zero_grad()
@@ -138,4 +139,4 @@ def train(config=None):
                         'Validation Accuracy': val_acu})
 
 
-wandb.agent(sweep_id, function=train, count=15, project='lstm_with_conv_by_frames')
+wandb.agent(sweep_id, function=train, count=20, project='conv1d_1lstm_300_epoch')

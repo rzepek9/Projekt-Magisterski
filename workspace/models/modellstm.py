@@ -12,23 +12,24 @@ przed wejsciem na lstm dane sa transponowane na (batch, frame, features)
 
 
 class LSTM(nn.Module):
-    def __init__(self):
+    def __init__(self, dropout_v):
         super(LSTM, self).__init__()
+
 
         self.flatten = nn.Flatten()
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=0.4)
+        self.dropout = nn.Dropout(p=dropout_v)
         self.sigmoid = nn.Sigmoid()
 
-        self.conv_1 = nn.Conv1d(24, 32, 3, stride=1, padding='same')
-        self.conv_2 = nn.Conv1d(32, 64, 3, stride=1, padding='same')
+        self.conv_1 = nn.Conv1d(24, 64, 3, stride=1, padding='same')
+        # self.conv_2 = nn.Conv1d(32, 64, 3, stride=1, padding='same')
 
-        self.lstm = nn.LSTM(input_size=64, hidden_size=256,
+        self.lstm = nn.LSTM(input_size=64, hidden_size=128,
                             num_layers=2, batch_first=True)  # lstm
 
         self.pool = nn.MaxPool1d(3, padding=1)
 
-        self.linear = nn.Linear(11*256, 768)
+        self.linear = nn.Linear(11*128, 768)
         self.linear_out = nn.Linear(768, 1)
 
     def forward(self, x):
@@ -37,8 +38,8 @@ class LSTM(nn.Module):
 
         x = self.relu(self.conv_1(x))
         x = self.dropout(x)
-        x = self.relu(self.conv_2(x))
-        x = self.dropout(x)
+        # x = self.relu(self.conv_2(x))
+        # x = self.dropout(x)
 
         x = x.permute(0, 2, 1)
 
