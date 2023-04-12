@@ -1,0 +1,15 @@
+*Pliki zepsute
+415 bledny plik
+376 bledny
+305 zepsuty
+
+* TODO
+- Znalezienie dodatkowych danych treningowych
+- Wyprobowac OPENPOSE (nie spieszy sie)
+
+- Normalizacja wzgledem punktu ciezkosci - (w trakcie kuba)
+- Zastosowac oversampling i sprawdzic rezultaty (https://machinelearningmastery.com/how-to-develop-rnn-models-for-human-activity-recognition-time-series-classification/)
+- Zmniejszyc liczebnosc zbioru testowego - done
+- Stworzyc nowe foldy z 3 chociaz
+
+- wyekstrahowac sam lot pilki -> wyciagnac dane srodka pilki ?moze obwodu? - moze sie przydac jako druga modalnosc modelu (fuzja na pewnym etapie)
