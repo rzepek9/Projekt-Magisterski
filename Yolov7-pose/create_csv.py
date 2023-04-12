@@ -2,41 +2,44 @@ import cv2
 import torch
 import argparse
 import csv
-from pathlib import Path
-
 import numpy as np
+
+from pathlib import Path
 from torchvision import transforms
+
 from utils.datasets import letterbox
 from utils.torch_utils import select_device
-from models.experimental import attempt_load
 from utils.general import non_max_suppression_kpt, strip_optimizer
 from utils.plots import frame_values
+from models.experimental import attempt_load
+
+
 
 """
 Działanie pliku 
 - flaga source sciezka do fold.txt
-- uzyj flagi site oraz train aby wygenerowac csv dla foldu treningowego z bocznej perspektywy, wazne aby umiescic dobra sciezke 
+- uzyj flagi site oraz train aby wygenerowac csv dla foldu treningowego z bocznej perspektywy, wazne aby umiescic dobra
+ sciezke 
 - uyztj flagi site oraz test dla foldu testowego z bocznej perspektywy
 - analogicnzie dla dolnej perspektywy
 
 Wygenerowany csv posiada kp w stylu xyxyxy... oraz na koncu target w przypadku dolnej perspektywy, bez kp twarzy
-Dla bocznej perspektywy kp w tym samym stylu tylko przed targetem dodane zostaly 4 katy (2 w lokciach , 2 w kolanach) KATY SA DO POPRAWY
-
+Dla bocznej perspektywy kp w tym samym stylu tylko przed targetem dodane zostaly 4 katy (2 w lokciach , 2 w kolanach) 
+KATY SA DO POPRAWY
 """
 
 
-CHECKPOINT_DIR = Path('/home/s175668/raid/Praca-Magisterska')
-
 
 @torch.no_grad()
-def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magisterska/four_seconds/under', device='0', test=False, train=False, site=False, under=False):
+def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magisterska/four_seconds/under', device='0',
+        test=False, train=False, site=False, under=False):
 
+    CHECKPOINT_DIR = Path('/home/s175668/raid/Praca-Magisterska')
     with open(source, 'r') as file:
         fold_lines = [line.strip() for line in file]
 
     device = select_device(opt.device)  # select device
-    model = attempt_load(poseweights, map_location=device)  # Load model
-    _ = model.eval()
+    model = attempt_load(poseweights, map_location=device).eval()  # Load model
 
     for clip in fold_lines:
 
@@ -59,7 +62,7 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
             if test:
                 output_csv_dir = CHECKPOINT_DIR / '/Repozytorium/Projekt-Magisterski/workspace/test/fold0/under'
             if train:
-                output_csv_dir = CHECKPOINT_DIR / '/Repozytorium/Projekt-Magisterski/workspace/train/fold0/under'
+                output_csv_dir = CHECKPOINT_DIR / 'Repozytorium/Projekt-Magisterski/workspace/train/fold0/under'
 
         frame_features = []
         output_csv_dir = output_csv_dir / file_name.split('_')[0]
@@ -76,7 +79,6 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
             ret, frame = cap.read()
 
             if ret:  # if success is true, means frame exist
-                print('frame_number,: ', frame_number)
 
                 orig_image = frame  # store frame
                 # convert frame to RGB
@@ -87,8 +89,7 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
                 image = transforms.ToTensor()(image)
                 image = torch.tensor(np.array([image.numpy()]))
 
-                image = image.to(device)  # convert image data to device
-                image = image.float()  # convert image to float precision (cpu)
+                image = image.to(device).float()  # convert image data to device
 
                 with torch.no_grad():  # get predictions
                     output_data, _ = model(image)
@@ -113,6 +114,7 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
 
                 frame_number += 1
 
+
             else:
                 break
 
@@ -121,7 +123,8 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
 
         frame_features = frame_features[:11] # 11 klatek, bo roznily sie zapisane filmiki przeze mnie 11/12
         create_csv(frame_features, output_csv_dir, calculate_angle)
-        assert len(frame_features) == 11 or file_name == '479_tomek_under_0.avi' or file_name == '338_gustaw_side_0.avi', (file_name, len(frame_features))
+        crashed_files = ['479_tomek_under_0.avi', '338_gustaw_side_0.avi']
+        assert len(frame_features) == 11 or file_name in crashed_files, (file_name, len(frame_features))
 
 
 def parse_opt():
@@ -135,20 +138,23 @@ def parse_opt():
     parser.add_argument('--train', action='store_true', default=False)
     parser.add_argument('--site', action='store_true', default=False)
     parser.add_argument('--under', action='store_true', default=False)
-    opt = parser.parse_args()
-    return opt
+    return parser.parse_args()
 
 
 def create_csv(values, output_dir, calculate_angle):
     if not calculate_angle:
-        header = ["LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y", "LEFT_ELBOW_X", "LEFT_ELBOW_Y", "RIGHT_ELBOW_X", "RIGHT_ELBOW_Y",
-                    "LEFT_WRIST_X", "LEFT_WRIST_Y", "RIGHT_WRIST_X","RIGHT_WRIST_Y", "LEFT_HIPS_X", "LEFT_HIPS_Y", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "LEFT_KNEE_X",
-                    "LEFT_KNEE_Y", "RIGHT_KNEE_X", "RIGHT_KNEE_Y","LEFT_ANKLE_X", "LEFT_ANKLE_Y", "RIGHT_ANKLE_X", "RIGHT_ANKLE_Y", "TARGET"]
+        header = ["LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y", "LEFT_ELBOW_X",
+                   "LEFT_ELBOW_Y", "RIGHT_ELBOW_X", "RIGHT_ELBOW_Y", "LEFT_WRIST_X", "LEFT_WRIST_Y", "RIGHT_WRIST_X",
+                   "RIGHT_WRIST_Y", "LEFT_HIPS_X", "LEFT_HIPS_Y", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "LEFT_KNEE_X",
+                   "LEFT_KNEE_Y", "RIGHT_KNEE_X", "RIGHT_KNEE_Y","LEFT_ANKLE_X", "LEFT_ANKLE_Y", "RIGHT_ANKLE_X",
+                    "RIGHT_ANKLE_Y", "TARGET"]
     else:
-        header = ["LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y", "LEFT_ELBOW_X", "LEFT_ELBOW_Y", "RIGHT_ELBOW_X", "RIGHT_ELBOW_Y",
-                    "LEFT_WRIST_X", "LEFT_WRIST_Y", "RIGHT_WRIST_X", "RIGHT_WRIST_Y", "LEFT_HIPS_X", "LEFT_HIPS_Y", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "LEFT_KNEE_X",
-                    "LEFT_KNEE_Y", "RIGHT_KNEE_X", "RIGHT_KNEE_Y","LEFT_ANKLE_X", "LEFT_ANKLE_Y", "RIGHT_ANKLE_X", "RIGHT_ANKLE_Y", "RIGHT_ELBOW_ANGLE", "LEFT_ELBOW_ANGLE",
-                    "RIGHT_KNEE_ANGLE", "RIGHT_KNEE_ANGLE", "TARGET"]
+        header = ["LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y", "LEFT_ELBOW_X",
+                   "LEFT_ELBOW_Y", "RIGHT_ELBOW_X", "RIGHT_ELBOW_Y", "LEFT_WRIST_X", "LEFT_WRIST_Y", "RIGHT_WRIST_X",
+                    "RIGHT_WRIST_Y", "LEFT_HIPS_X", "LEFT_HIPS_Y", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "LEFT_KNEE_X",
+                    "LEFT_KNEE_Y", "RIGHT_KNEE_X", "RIGHT_KNEE_Y","LEFT_ANKLE_X", "LEFT_ANKLE_Y", "RIGHT_ANKLE_X",
+                    "RIGHT_ANKLE_Y", "RIGHT_ELBOW_ANGLE", "LEFT_ELBOW_ANGLE", "RIGHT_KNEE_ANGLE", "RIGHT_KNEE_ANGLE",
+                    "TARGET"]
 
     with open(f'{str(output_dir)}.csv', 'w') as f:
         writer = csv.writer(f)
