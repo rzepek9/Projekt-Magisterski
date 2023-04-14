@@ -12,7 +12,7 @@ from .utils import (
     get_distances,
     init_extraction_vars,
     is_ball_too_big,
-    rescale_detections,
+    is_ball_above_knees,
 )
 
 OUTPUT_FILENAME = Path("extracted_shot.avi")
@@ -21,6 +21,9 @@ FRAMES_THRESHOLD = 20
 
 
 class ShootingMotionExtractor:
+    """
+    Class for extracting basketball shooting motion from a video
+    """
     def __init__(
         self, yolo_bball_detector: BasketballDetector = None, yolo_pose: YoloPose = None
     ):
@@ -44,15 +47,14 @@ class ShootingMotionExtractor:
         )
         return (basketball_detections, kpt_detections)
 
-    def detect_on_video(
-        self,
-        source: Path,
-        bball_detection_conf: int = 0.5,
-        show_video: bool = True,
-        save_video: bool = False,
-        output_filename: Path = None,
-    ) -> None:
-        cap = cv2.VideoCapture(source)
+    def extract_shooting_motion_period(
+        self, source: Path, bball_detection_conf: int = 0.5
+    ) -> tuple:
+        """
+        Extracts the period of shooting motion from a video
+        Returns a tuple with start and end time of the shooting period
+        """
+        cap = cv2.VideoCapture(str(source))
         frame_size = (
             int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
@@ -60,60 +62,8 @@ class ShootingMotionExtractor:
         if not cap.isOpened():
             print("Error while trying to read video. Check if source is valid")
             raise SystemExit()
-        if save_video:
-            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-            if not output_filename:
-                output_filename = OUTPUT_FILENAME
-            output_video = cv2.VideoWriter(
-                str(output_filename), fourcc, 20.0, frame_size
-            )
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                print("Can't receive frame (stream end?). Exiting ...")
-                break
-            basketball_detections, kpt_detections = self.get_detections(
-                frame, frame_size[0], bball_detection_conf
-            )
-            _, image_post = self.yolo_pose.plot_detections_and_get_results(
-                preprocess_image(frame, frame_size[0], self.device), kpt_detections
-            )
-            image_post = cv2.resize(image_post, frame_size)
-            self.bball_detector.plot_detections(image_post, basketball_detections)
-            if show_video:
-                cv2.imshow("Shooting Motion", image_post)
-                if cv2.waitKey(1) & 0xFF == 27:
-                    break
-            if save_video:
-                output_video.write(image_post)
-        if save_video:
-            output_video.release()
-        cap.release()
-        cv2.destroyAllWindows()
+        frames_since_ball, shooting_motion_start, shooting_motion_end = init_extraction_vars()
 
-    def extract_shooting_motion(
-        self,
-        source: Path,
-        bball_detection_conf: int = 0.5,
-        show_video: bool = True,
-        save_video: bool = False,
-        output_filename: Path = None,
-        return_shooting_motion_period: bool = False,
-    ) -> None | tuple:
-        cap = cv2.VideoCapture(source)
-        frame_size = (
-            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-        )
-        if not cap.isOpened():
-            print("Error while trying to read video. Check if source is valid")
-            raise SystemExit()
-        (
-            output_video,
-            frames_since_ball,
-            shooting_motion_start,
-            shooting_motion_end,
-        ) = init_extraction_vars()
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -122,45 +72,88 @@ class ShootingMotionExtractor:
             basketball_detections, kpt_detections = self.get_detections(
                 frame, frame_size[0], bball_detection_conf
             )
-            if self.is_ball_in_hands(frame, basketball_detections, kpt_detections):
+            if self.is_ball_in_hands(basketball_detections, kpt_detections):
+                if not shooting_motion_start:
+                    shooting_motion_start = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+                    print(f"Shooting motion started at {shooting_motion_start}")
+                frames_since_ball = 0
+            else:
+                frames_since_ball += 1
+                if frames_since_ball > FRAMES_THRESHOLD:
+                    shooting_motion_end = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+                    print(f"Shooting motion ended at {shooting_motion_end}")
+                    break
+        if shooting_motion_start and not shooting_motion_end:
+            shooting_motion_end = cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS)
+        return (shooting_motion_start, shooting_motion_end)
+
+    def extract_and_save_shooting_motion(
+        self,
+        source: Path,
+        bball_detection_conf: int = 0.5,
+        output_filename: Path = None,
+    ) -> None | tuple:
+        """
+        Extracts the shooting motion for a video and allows for saving the extracted video
+        and returning the shooting motion period
+        """
+        cap = cv2.VideoCapture(str(source))
+        frame_size = (
+            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        )
+        if not output_filename:
+            output_filename = OUTPUT_FILENAME
+            if isinstance(output_filename, Path):
+                output_filename = str(output_filename)
+        output_video = None
+        if not cap.isOpened():
+            print("Error while trying to read video. Check if source is valid")
+            raise SystemExit()
+        frames_since_ball, shooting_motion_start, shooting_motion_end = init_extraction_vars()
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                print("Can't receive frame (stream end?). Exiting ...")
+                break
+            basketball_detections, kpt_detections = self.get_detections(
+                frame, frame_size[0], bball_detection_conf
+            )
+            if self.is_ball_in_hands(basketball_detections, kpt_detections):
                 if not shooting_motion_start:
                     shooting_motion_start = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
                     print(f"Shooting motion started at {shooting_motion_start}")
                 print("BALL IN HANDS")
                 frames_since_ball = 0
-                if save_video and not output_video:
+                if not output_video:
                     fourcc = cv2.VideoWriter_fourcc(*"MJPG")
                     if not output_filename:
                         output_filename = OUTPUT_FILENAME
-                    output_video = cv2.VideoWriter(
-                        output_filename, fourcc, 20.0, frame_size
-                    )
+                    if isinstance(output_filename, Path):
+                        output_filename = str(output_filename)
+                    output_video = cv2.VideoWriter(output_filename, fourcc, 20.0, frame_size)
             else:
                 print("BALL NOT IN HANDS")
                 frames_since_ball += 1
-                if frames_since_ball > FRAMES_THRESHOLD:
+                if frames_since_ball > 200:
                     print(
                         f"{FRAMES_THRESHOLD} FRAMES WITHOUT THE BALL IN HANDS, STOPPING FILE WRITING"
                     )
                     shooting_motion_end = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
                     print(f"Shooting motion ended at {shooting_motion_end}")
                     break
-            if show_video:
-                cv2.imshow("Shooting Motion", frame)
-                if cv2.waitKey(1) & 0xFF == 27:
-                    break
-            if save_video and output_video:
+            if output_video:
                 output_video.write(frame)
-        if save_video and output_video:
-            output_video.release()
+        output_video.release()
         cap.release()
         cv2.destroyAllWindows()
-        if return_shooting_motion_period:
-            return (shooting_motion_start, shooting_motion_end)
 
-    def is_ball_in_hands(
-        self, frame: NDArray, basketball_detections, kpt_detections
-    ) -> bool:
+    def is_ball_in_hands(self, basketball_detections: list, kpt_detections: list) -> bool:
+        """
+        Checks if the ball is in the hands of the player
+        Returns boolean value of the check
+        """
         if self.bball_detector.are_objects_detected(basketball_detections):
             boxes = basketball_detections[0].boxes.boxes.numpy()
             balls_detected = {
@@ -175,23 +168,10 @@ class ShootingMotionExtractor:
                             reversed(pose[:, :6])
                         ):  # loop over poses for drawing on frame
                             kpts_without_head = pose[det_index, 21:]
-                            if is_ball_above_knees(ball, kpts_without_head):
-                                if not is_ball_too_big(ball):
-                                    distances = get_distances(ball, kpts_without_head)
-                                    if any(
-                                        dist <= DIST_THRESHOLD for dist in distances
-                                    ):
-                                        return True
+                            if is_ball_above_knees(ball, kpts_without_head) and not is_ball_too_big(ball):
+                                distances = get_distances(ball, kpts_without_head)
+                                if any(
+                                    dist <= DIST_THRESHOLD for dist in distances
+                                ):
+                                    return True
             return False
-
-
-def is_ball_above_knees(ball_coords, kpts_without_head):
-    knees = kpts_without_head[24:29]
-    left_knee = rescale_detections(knees[:2])
-    right_knee = rescale_detections(knees[3:])
-    ball_center_height = (ball_coords[1] + ball_coords[3]) / 2
-    return (
-        True
-        if any(ball_center_height < knee for knee in [left_knee[1], right_knee[1]])
-        else False
-    )

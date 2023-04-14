@@ -1,4 +1,3 @@
-import csv
 import os
 from pathlib import Path
 from subprocess import PIPE, Popen
@@ -17,7 +16,7 @@ def init_detection_vars() -> tuple:
     """
     Initializes detection variables for the YoloPose model
     """
-    return 0, 0, [], [], [], []
+    return 0, [], []
 
 
 def preprocess_image(frame: NDArray, frame_width: int, device: torch.device):
@@ -40,39 +39,6 @@ def postprocess_image(image: NDArray) -> cv2.cvtColor:
     im0 = image[0].permute(1, 2, 0) * 255
     im0 = im0.cpu().numpy().astype(np.uint8)
     return cv2.cvtColor(im0, cv2.COLOR_RGB2BGR)
-
-
-def create_csv(values, output_dir: Path, output_filename: Path) -> None:
-    """
-    Writes a csv file based on given values
-    """
-    header = [
-        "Frame nr",
-        "LEFT_SHOULDER",
-        "RIGH_SHOULDER",
-        "LEFT_ELBOW",
-        "RIGHT_ELBOW",
-        "LEFT_WRIST",
-        "RIGHT_WRIST",
-        "LEFT_HIPS",
-        "RIGHT_HIPS",
-        "LEFT_KNEE",
-        "RIGHT_KNEE",
-        "LEFT_ANKLE",
-        "RIGHT_ANKLE",
-        "LEFT_ELBOW_ANGLE",
-        "RIGHT_ELBOW_ANGLE",
-        "LEFT_KNEE_ANGLE",
-        "RIGHT_KNEE_ANGLE",
-    ]
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    csv_dir = output_dir / f"{output_filename}.csv"
-    if not csv_dir.exists():
-        with open(str(csv_dir), "w", encoding="UTF8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(header)
-            writer.writerows(values)
 
 
 def write_video_results(

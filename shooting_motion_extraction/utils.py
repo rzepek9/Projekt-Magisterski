@@ -56,7 +56,7 @@ def init_extraction_vars() -> tuple:
     """
     Initializes variables for the extraction of shooting motion
     """
-    return None, 0, None, None
+    return 0, None, None
 
 
 def get_distances(ball_coords: list, kpts_without_head: list) -> tuple:
@@ -91,3 +91,19 @@ def get_ball_size(ball_coords) -> int:
     Counts and returns the ball size based on its coordinates
     """
     return (ball_coords[2] - ball_coords[0]) * (ball_coords[3] - ball_coords[1])
+
+
+def is_ball_above_knees(ball_coords: list, kpts_without_head: list) -> bool:
+    """
+    Checks if ball is above player's knees
+    Returns boolean value of the check
+    """
+    knees = kpts_without_head[24:29]
+    left_knee = rescale_detections(knees[:2])
+    right_knee = rescale_detections(knees[3:])
+    ball_center_height = (ball_coords[1] + ball_coords[3]) / 2
+    return (
+        True
+        if any(ball_center_height < knee for knee in [left_knee[1], right_knee[1]])
+        else False
+    )

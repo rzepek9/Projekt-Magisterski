@@ -59,23 +59,22 @@ def crop_video(source_under, source_side):
 if __name__ == "__main__":
     under_dir = INPUT_DIR.joinpath("under")
     side_dir = INPUT_DIR.joinpath("side")
-    files = sorted(
-        [
-            (
-                under_file,
-                side_dir.joinpath(under_file.name.replace("_under_", "_side_")),
-            )
-            for under_file in under_dir.iterdir()
-            if under_file.name.endswith(".mov")
-        ]
-    )
+    files = [
+        (
+            under_file,
+            side_dir.joinpath(under_file.name.replace("_under_", "_side_")),
+        )
+        for under_file in under_dir.iterdir()
+        if under_file.name.endswith(".mov")
+    ]
     print(len(files))
     exists = 0
     for under_file, side_file in files:
-        if Path(get_output_filename(under_file)).exists():
+        """if both output files for under and side extst exist += 1 etc.
+        Write if *side output file exists* and *under output file exists*:"""
+        if Path(get_output_filename(side_file)).exists() and Path(get_output_filename(under_file)).exists():
             exists += 1
-            print(Path(get_output_filename(under_file)))
-            print(f"ALREADY EXTRACTED {exists}")
+            print(f"ALREADY EXTRACTED {exists} FILES")
         else:
             if side_file.exists():
                 print(f"PROCESSING{under_file}")
