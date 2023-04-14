@@ -2,17 +2,13 @@ from pathlib import Path
 
 import cv2
 import torch
-from models.experimental import attempt_load
 from numpy.typing import NDArray
-from utils.general import non_max_suppression_kpt
-from utils.plots import frame_values, plot_skeleton_without_head
 
-from .utils import (
-    init_detection_vars,
-    postprocess_image,
-    preprocess_image,
-    write_video_results,
-)
+from ..models.experimental import attempt_load
+from ..utils.general import non_max_suppression_kpt
+from ..utils.plots import frame_values, plot_skeleton_without_head
+from .utils import (init_detection_vars, postprocess_image, preprocess_image,
+                    write_video_results)
 
 POSEWEIGHTS = Path("Yolov7_pose/yolov7-w6-pose.pt")
 OUTPUT_VIDEO_DIR = Path("Yolov7_pose/output_videos")
@@ -21,6 +17,10 @@ OUTPUT_VIDEO_DIR = Path("Yolov7_pose/output_videos")
 class YoloPose:
     """
     Class for pose estimation with Yolov7
+    One notice:
+    Due to import problems conflicts with the original Yolov7_pose repo
+    to use this class you need to have a Yolov7_pose path set in your pythonpath
+    or append it to your sys.path
     """
 
     def __init__(self, poseweights: Path = None) -> None:
