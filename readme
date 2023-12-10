@@ -13,3 +13,11 @@
 - Stworzyc nowe foldy z 3 chociaz
 
 - wyekstrahowac sam lot pilki -> wyciagnac dane srodka pilki ?moze obwodu? - moze sie przydac jako druga modalnosc modelu (fuzja na pewnym etapie)
+
+
+WANDB RUNS
+
+macierz wejsciowa normalizowana do wartosci 0-1
+01_run_one_lstm_layer - normalizowany przez wektor srodek ciezkosci - nos z pierwszej klatki
+02_run_one_lstm_layer - normalizowany przez wektor srodek ciezkosci-nos w kazdej klatce osobno
+03_run_one_lstm_layer - 01_run_one_lstm_layer + augment add

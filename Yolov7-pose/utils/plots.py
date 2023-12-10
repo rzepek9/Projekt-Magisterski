@@ -19,11 +19,33 @@ def plot_skeleton_without_head(im, kpts, steps):
         if conf_cord > 0.4:
             cv2.circle(im, (int(x_cord), int(y_cord)), 3, (0,0,0), 1)
     
-    for c in connection:
-        pos1 = (int(kpts[c[0]*steps]) , int(kpts[c[0]*steps+1]))
-        pos2 = (int(kpts[c[1]*steps]) , int(kpts[c[1]*steps+1]))
+    # for c in connection:
+    #     pos1 = (int(kpts[c[0]*steps]) , int(kpts[c[0]*steps+1]))
+    #     pos2 = (int(kpts[c[1]*steps]) , int(kpts[c[1]*steps+1]))
 
-        cv2.line(im, pos1, pos2, (255,255,255), thickness=1)
+    #     cv2.line(im, pos1, pos2, (255,255,255), thickness=1)
+
+def plot_vectors(im, kpts, steps, nose):
+    lh_x, lh_y, = kpts[6*steps], kpts[6*steps+1]
+    rh_x, rh_y, = kpts[7*steps], kpts[7*steps+1]
+
+    x0, y0 = abs(lh_x - rh_x)/2, abs(lh_y - rh_y)/2
+
+    x0 += min(lh_x, rh_x)
+    y0 += min(lh_y, rh_y)
+
+    cv2.circle(im, (int(x0), int(y0)), 3, (0,0,0), 1)
+    pos0 = (int(x0), int(y0))
+    print(pos0)
+
+    for i in range(len(KEYPOINTS_INTERESTED)):
+        x_cord, y_cord, = kpts[i*steps], kpts[i*steps+1]
+        pos1 = (int(x_cord) , int(y_cord))
+        cv2.line(im, pos0, pos1, (255,255,255), thickness=1)
+
+    cv2.circle(im, (int(nose[0]), int(nose[1])), 3, (0,0,0), 1)
+    posN = (int(nose[0]), int(nose[1]))
+    cv2.line(im, pos0, posN, (255,255,255), thickness=1)
 
         
 def calculate_angles(kpts,steps):
@@ -58,19 +80,27 @@ def calculate_angles(kpts,steps):
     return dg
 
 
-def frame_values(kpts, steps, target, calculate=None):
-    value = []
-
+def frame_values(kpts, steps, target, fw, fh, nose):
+    value = [nose[0].item()/fw, nose[1].item()/fh]
+    print(kpts)
     for cord in range(len(KEYPOINTS_INTERESTED)):
-        value.append(float(kpts[cord*steps])/640)
-        value.append(float(kpts[cord*steps+1])/480)
+        # X
+        print(cord)
+        print(float(kpts[cord*steps])/fw)
+        value.append(float(kpts[cord*steps])/fw)
+        # Y
+        print(float(kpts[cord*steps+1])/fh)
+        value.append(float(kpts[cord*steps+1])/fh)
+        # Conf
+        print(float(kpts[cord*steps+2]))
+        value.append(float(kpts[cord*steps+2]))
+
+        
     
-    if calculate:
-        angles = calculate_angles(kpts, steps)
-        for a in angles:
-            value.append(a)
-    
+
     value.append(target)
+    print(value)
+    print(len(value))
     return value
 
     

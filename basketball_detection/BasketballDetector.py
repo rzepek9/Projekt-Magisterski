@@ -3,6 +3,7 @@ from pathlib import Path
 import cv2
 from numpy.typing import NDArray
 from ultralytics import YOLO
+import supervision as sv
 
 YOLO_BBALL_CHECKPOINT = Path("basketball_detection/yolov8_bball.pt")
 OUTPUT_FILENAME = Path("basketball_detection/basketball_detection.avi")
@@ -17,50 +18,35 @@ class BasketballDetector:
         self.yolov8 = (
             YOLO(YOLO_BBALL_CHECKPOINT) if not yolo_weights else YOLO(yolo_weights)
         )
+        self.id2label = {0: "ball", 1: "basket"}
+        self.box_annotator = sv.BoxAnnotator()
 
-    def get_detections(self, frame: NDArray, confidence: int = 0.5) -> list:
+    def get_detections(self, frame: NDArray, confidence_threshold: int = 0.5) -> sv.Detections:
         """
         Makes predictions on an image with a given confidence
-        Returns list of YOLO detections
+        Returns supervision Detections
         """
-        return self.yolov8.predict(source=[frame], conf=confidence, save=False)
+        yolo_detections = self.yolov8.predict(source=[frame], conf=confidence_threshold, verbose=False)
+        return sv.Detections.from_yolov8(yolo_detections[0])
 
-    def are_objects_detected(self, detections: list) -> bool:
-        return len(detections[0].boxes.boxes.numpy()) != 0
-
-    def plot_detections(self, frame: NDArray, detections: list) -> None:
+    def plot_detections(self, frame: NDArray, detections: sv.Detections) -> None:
         """
         Plots detected basketball objects on a frame based
-        on a list of YOLO detections
+        on supervision Detections
         """
-        if self.are_objects_detected(detections):
-            for i in range(len(detections[0].boxes.boxes.numpy())):
-                boxes = detections[0].boxes
-                box = boxes[i]
-                class_id = box.cls.numpy()[0]
-                conf = box.conf.numpy()[0]
-                bb = box.xyxy.numpy()[0]
-                label = detections[0].names[class_id]
-                color = (0, 0, 255)
-
-                cv2.rectangle(
-                    frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), color, 3
-                )
-                font = cv2.FONT_HERSHEY_COMPLEX
-                cv2.putText(
-                    frame,
-                    label + " " + str(round(conf, 3)) + "%",
-                    (int(bb[0]), int(bb[1]) - 10),
-                    font,
-                    1,
-                    (255, 255, 255),
-                    2,
-                )
+        labels = [
+            f"{self.id2label[class_id]} {confidence:.2f}"
+            for class_id, confidence in zip(detections.class_id, detections.confidence)
+        ]
+        annotated_frame = self.box_annotator.annotate(
+            scene=frame.copy(), detections=detections, labels=labels
+        )
+        return annotated_frame
 
     def detect_on_video(
         self,
         source: Path,
-        confidence: int = 0.5,
+        confidence_threshold: int = 0.5,
         show_video: bool = True,
         save_video: bool = False,
         output_filename: Path = None,
@@ -76,7 +62,7 @@ class BasketballDetector:
             print("Error while trying to read video. Check if source is valid")
             raise SystemExit()
         if save_video:
-            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
             if not output_filename:
                 output_filename = OUTPUT_FILENAME
             frame_size = (
@@ -91,15 +77,26 @@ class BasketballDetector:
             if not ret:
                 print("Can't receive frame (stream end?). Exiting ...")
                 break
-            detections = self.get_detections(frame, confidence)
-            self.plot_detections(frame, detections)
+            frame = resize_frame(frame)
+            detections = self.get_detections(frame, confidence_threshold)
+            annotated_frame = self.plot_detections(frame, detections)
             if save_video:
-                output_video.write(frame)
+                output_video.write(annotated_frame)
             if show_video:
-                cv2.imshow("Basketball Detection", frame)
+                cv2.imshow("Basketball Detection", annotated_frame)
                 if cv2.waitKey(1) & 0xFF == 27:
                     break
         if save_video:
             output_video.release()
         cap.release()
         cv2.destroyAllWindows()
+
+
+def resize_frame(frame, target_width=640, target_height=480):
+    """
+    Resize the frame to the target width and height while maintaining the aspect ratio.
+    """
+    aspect_ratio = frame.shape[1] / frame.shape[0]
+    target_width = min(target_width, int(target_height * aspect_ratio))
+    target_height = int(target_width / aspect_ratio)
+    return cv2.resize(frame, (target_width, target_height))

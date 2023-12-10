@@ -34,57 +34,48 @@ KATY SA DO POPRAWY
 def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magisterska/four_seconds/under', device='0',
         test=False, train=False, site=False, under=False):
 
-    CHECKPOINT_DIR = Path('/home/s175668/raid/Praca-Magisterska')
-    with open(source, 'r') as file:
-        fold_lines = [line.strip() for line in file]
-
+    source_list = Path(source).glob('*.avi')
     device = select_device(opt.device)  # select device
     model = attempt_load(poseweights, map_location=device).eval()  # Load model
 
-    for clip in fold_lines:
+    output_csv_dir = Path('/home/s175668/raid/Praca-Magisterska/csv_extracted/th_60_kp_with_conf')
+    bad_files = []
+    database_info = []
+    for clip in source_list:
 
-        clip_path = clip.replace("mov", "avi")
-        file_name = clip_path.rsplit('/', 1)[-1]
+        file_name = str(clip).rsplit('/', 1)[-1][:-4]
+        file_name = file_name.replace('site', 'side')
+        side = bool('side' in file_name)
 
-        if site:
-            calculate_angle = True
-            clip_path = CHECKPOINT_DIR / 'shoots_only/site'
-            if test:
-                output_csv_dir = CHECKPOINT_DIR / '/Repozytorium/Projekt-Magisterski/workspace/test/fold0/site'
-            if train:
-                output_csv_dir = CHECKPOINT_DIR / 'Repozytorium/Projekt-Magisterski/workspace/train/fold0/site'
+        label = file_name.rsplit('_', 1)[-1]
 
-        if under:
-            file_name = file_name.replace("side", "site")
-            file_name = file_name.replace("site", "under")
-            clip_path = CHECKPOINT_DIR / 'shoots_only/under'
-            calculate_angle = False
-            if test:
-                output_csv_dir = CHECKPOINT_DIR / '/Repozytorium/Projekt-Magisterski/workspace/test/fold0/under'
-            if train:
-                output_csv_dir = CHECKPOINT_DIR / 'Repozytorium/Projekt-Magisterski/workspace/train/fold0/under'
-
+        if label == 'celny':
+            file_name = file_name.replace("celny", "1")
+        elif label == 'niecelny':
+            file_name = file_name.replace("niecelny", "0")
+        
+        shooter = file_name.split('_', 2)[1]
+        
         frame_features = []
-        output_csv_dir = output_csv_dir / file_name.split('_')[0]
-        target = int(clip[-5])
+        csv_path = output_csv_dir / f"{file_name}.csv"
 
-        clip_path = clip_path / file_name
-        cap = cv2.VideoCapture(str(clip_path))
+        target = int(file_name[-1])
 
-        frame_width = int(cap.get(3))  # get video frame width
+        cap = cv2.VideoCapture(str(clip))
         frame_number = 1
 
         while (cap.isOpened):  # loop until cap opened or video not complete
             created = False
             ret, frame = cap.read()
+            frame_width = int(cap.get(3))
+            frame_hight = int(cap.get(4))
 
             if ret:  # if success is true, means frame exist
 
                 orig_image = frame  # store frame
-                # convert frame to RGB
-                image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
-                image = letterbox(image, (frame_width),
-                                  stride=64, auto=True)[0]
+                
+                image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB) # convert frame to RGB
+                image = letterbox(image, (frame_width), stride=64, auto=True)[0]
 
                 image = transforms.ToTensor()(image)
                 image = torch.tensor(np.array([image.numpy()]))
@@ -95,7 +86,7 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
                     output_data, _ = model(image)
 
                 output_data = non_max_suppression_kpt(output_data,  # Apply non max suppression
-                                                      0.50, # Conf. Threshold.
+                                                      0.60, # Conf. Threshold.
                                                       0.65,  # IoU Threshold.
                                                       nc=model.yaml['nc'],  # Number of classes.
                                                       nkpt=model.yaml['nkpt'], # Number of keypoints.
@@ -105,13 +96,20 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
                     # loop over poses for drawing on frame
                     for det_index, (*xyxy, conf, cls) in enumerate(reversed(pose[:, :6])):
                         # Na pojedynczych filmikach wykrywa osobe pod koszem co wyplywalo na wynik csv
-                        if (site and pose[det_index, 21]/640 < 0.6) or created:
+                        if (side and pose[det_index, 21]/640 < 0.35) or created:
                             continue
                         else:
+                            nose = pose[det_index, 6:8]
                             kpts = pose[det_index, 21:]
-                            frame_features.append(frame_values(kpts, steps=3, target=target, calculate=calculate_angle))
+
+                            frame_features.append(frame_values(kpts, steps=3, target=target, fw=frame_width,
+                                                               fh=frame_hight, nose=nose))
+                            
                             created = True
 
+                if not created:
+                    frame_features.append([0 if i !=38  else target for i in range(39)])
+                    bad_files.append([file_name, frame_number])
                 frame_number += 1
 
 
@@ -121,10 +119,21 @@ def run(poseweights="yolov7-w6-pose.pt", source='/home/s175668/raid/Praca-Magist
         cap.release()
         cv2.destroyAllWindows()
 
-        frame_features = frame_features[:11] # 11 klatek, bo roznily sie zapisane filmiki przeze mnie 11/12
-        create_csv(frame_features, output_csv_dir, calculate_angle)
-        crashed_files = ['479_tomek_under_0.avi', '338_gustaw_side_0.avi']
-        assert len(frame_features) == 11 or file_name in crashed_files, (file_name, len(frame_features))
+        create_csv(frame_features, csv_path, False)
+        database_info.append([csv_path, shooter, target])
+        assert len(frame_features) == 14, file_name
+
+    try:
+        with open(str(output_csv_dir / 'prob_badfiles.txt'), 'a+', newline='') as f:
+            writer = csv.writer(f)
+            for element in bad_files:
+                print(element)
+                writer.writerow(element)
+        database_info(output_csv_dir, database_info)
+        print(database_info)
+    except:
+        print(bad_files)
+        print("Problem with csv code")
 
 
 def parse_opt():
@@ -140,23 +149,23 @@ def parse_opt():
     parser.add_argument('--under', action='store_true', default=False)
     return parser.parse_args()
 
+def databse_info(csv_dir, values):
+    header = ['path', 'shooter', 'label']
+    with open(str(csv_dir/ "database_info.csv"), 'a+') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(values)
+
 
 def create_csv(values, output_dir, calculate_angle):
-    if not calculate_angle:
-        header = ["LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y", "LEFT_ELBOW_X",
-                   "LEFT_ELBOW_Y", "RIGHT_ELBOW_X", "RIGHT_ELBOW_Y", "LEFT_WRIST_X", "LEFT_WRIST_Y", "RIGHT_WRIST_X",
-                   "RIGHT_WRIST_Y", "LEFT_HIPS_X", "LEFT_HIPS_Y", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "LEFT_KNEE_X",
-                   "LEFT_KNEE_Y", "RIGHT_KNEE_X", "RIGHT_KNEE_Y","LEFT_ANKLE_X", "LEFT_ANKLE_Y", "RIGHT_ANKLE_X",
-                    "RIGHT_ANKLE_Y", "TARGET"]
-    else:
-        header = ["LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y", "LEFT_ELBOW_X",
-                   "LEFT_ELBOW_Y", "RIGHT_ELBOW_X", "RIGHT_ELBOW_Y", "LEFT_WRIST_X", "LEFT_WRIST_Y", "RIGHT_WRIST_X",
-                    "RIGHT_WRIST_Y", "LEFT_HIPS_X", "LEFT_HIPS_Y", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "LEFT_KNEE_X",
-                    "LEFT_KNEE_Y", "RIGHT_KNEE_X", "RIGHT_KNEE_Y","LEFT_ANKLE_X", "LEFT_ANKLE_Y", "RIGHT_ANKLE_X",
-                    "RIGHT_ANKLE_Y", "RIGHT_ELBOW_ANGLE", "LEFT_ELBOW_ANGLE", "RIGHT_KNEE_ANGLE", "RIGHT_KNEE_ANGLE",
-                    "TARGET"]
+    header = ["NOSE_X", "NOSE_Y", "LEFT_SHOULDER_X", "LEFT_SHOULDER_Y", "CONF", "RIGH_SHOULDER_X", "RIGH_SHOULDER_Y",
+            "CONF", "LEFT_ELBOW_X", "LEFT_ELBOW_Y","CONF", "RIGHT_ELBOW_X",  "RIGHT_ELBOW_Y", "CONF",
+            "LEFT_WRIST_X", "LEFT_WRIST_Y", "CONF", "RIGHT_WRIST_X", "RIGHT_WRIST_Y", "CONF",
+            "LEFT_HIPS_X", "LEFT_HIPS_Y", "CONF", "RIGHT_HIPS_X", "RIGHT_HIPS_Y", "CONF",
+            "LEFT_KNEE_X", "LEFT_KNEE_Y","CONF", "RIGHT_KNEE_X", "RIGHT_KNEE_Y", "CONF", "LEFT_ANKLE_X", "LEFT_ANKLE_Y",
+             "CONF", "RIGHT_ANKLE_X", "RIGHT_ANKLE_Y", "CONF", "TARGET"]
 
-    with open(f'{str(output_dir)}.csv', 'w') as f:
+    with open(str(output_dir), 'w') as f:
         writer = csv.writer(f)
         writer.writerow(header)
         writer.writerows(values)
